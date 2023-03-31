@@ -1556,6 +1556,7 @@ void connection<config>::send_http_request() {
     // selected client version
     if (m_processor) {
         lib::error_code ec;
+
         ec = m_processor->client_handshake_request(m_request,m_uri,
             m_requested_subprotocols);
 
@@ -1718,6 +1719,26 @@ void connection<config>::handle_read_http_response(lib::error_code const & ec,
         if (m_handshake_timer) {
             m_handshake_timer->cancel();
             m_handshake_timer.reset();
+        }
+
+        if (m_response.get_status_code() == http::status_code::found) {
+            // 302 redirect
+            std::string redirect_uri = m_response.get_header("Location");
+            if (redirect_uri.size() < 4) {
+                m_elog->write(log::elevel::rerror, "error in handle_read_http_response: invalid redirect url: " + redirect_uri);
+                this->terminate(make_error_code(error::general));
+                return;
+            }
+            if (redirect_uri.substr(0, 4) == "http") {
+                redirect_uri.replace(0, 4, "ws");
+            }
+            m_alog->write(log::alevel::devel, "Redirected to uri: " + redirect_uri);
+            m_request.reset();
+            m_response = {};
+            set_uri(lib::make_shared<uri>(redirect_uri));
+            m_internal_state = istate::WRITE_HTTP_REQUEST;
+            this->send_http_request();
+            return;
         }
 
         lib::error_code validate_ec = m_processor->validate_server_handshake_response(

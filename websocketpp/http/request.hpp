@@ -124,6 +124,12 @@ public:
         return m_uri;
     }
 
+    /// Reset the buffer and ready state of the request.
+    void reset() {
+        m_buf.reset();
+        m_ready = false;
+    }
+
 private:
     /// Helper function for message::consume. Process request line
     /**

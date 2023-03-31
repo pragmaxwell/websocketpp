@@ -241,8 +241,12 @@ public:
         req.set_uri(uri->get_resource());
         req.set_version("HTTP/1.1");
 
-        req.append_header("Upgrade","websocket");
-        req.append_header("Connection","Upgrade");
+        if (req.get_header("Upgrade").empty()) {
+            req.append_header("Upgrade", "websocket");
+        }
+        if (req.get_header("Connection").empty()) {
+            req.append_header("Connection", "Upgrade");
+        }
         req.replace_header("Sec-WebSocket-Version","13");
         req.replace_header("Host",uri->get_host_port());
 
